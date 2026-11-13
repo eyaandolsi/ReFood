@@ -1,6 +1,6 @@
 # ReFood : Moins de gaspillage, plus de solidarité
 
-> Projet AWD : architecture microservices | Équipe **Five Core** | Classe : `4DASXX` | Groupe : `GX`
+> Projet AWD : architecture microservices | Équipe **Five Core** | Classe : `4DASI9` 
 
 ReFood est une application web qui connecte les **commerçants** ayant des surplus invendus avec des **clients** (vente de paniers à prix réduit), des **associations** (dons gratuits) et des **livreurs** (transport), afin de réduire le gaspillage alimentaire.
 
