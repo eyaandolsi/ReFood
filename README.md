@@ -1,84 +1,63 @@
 # ReFood : Moins de gaspillage, plus de solidarité
 
-> Projet AWD : architecture microservices | Équipe **Five Core** | Classe : `4DASI9` 
+> Projet AWD : architecture microservices | Équipe **Five Core** | Classe : `4DASI9`
 
-ReFood est une application web qui connecte les **commerçants** ayant des surplus invendus avec des **clients** (vente de paniers à prix réduit), des **associations** (dons gratuits) et des **livreurs** (transport), afin de réduire le gaspillage alimentaire.
+ReFood est une application web qui connecte les **commerçants** ayant des surplus invendus avec des **clients** (vente de paniers à prix réduit) et des **associations** (dons gratuits), et qui sensibilise au gaspillage alimentaire grâce à des **articles**, des **événements solidaires** et des **recettes anti-gaspillage**.
 
 > ⚠️ **État du projet : validation intermédiaire (séance 4).** Le projet n'est pas finalisé. Ce dépôt présente la conception, l'organisation et les premières réalisations.
 
 ---
 
-
-
 ## 🎯 Problématique
 
-Chaque jour, des produits encore consommables sont jetés par les commerces, alors que des consommateurs et des associations ont besoin de produits abordables ou de dons.
+Chaque jour, des produits encore consommables sont jetés par les commerces, alors que des consommateurs et des associations ont besoin de produits abordables ou de dons. Les citoyens manquent aussi d'informations et d'occasions pour agir contre le gaspillage.
 
-**Notre solution :** une seule application pour **vendre** des paniers à prix réduit, **donner** les surplus aux associations et **livrer** les commandes et les dons.
+**Notre solution :** une seule application pour **vendre** des paniers à prix réduit, **donner** les surplus aux associations, et **sensibiliser** (articles, événements solidaires, recettes), avec une couche d'intelligence pour anticiper les surplus.
 
 ## 🧑‍🤝‍🧑 Acteurs et fonctionnalités
 
 | Acteur | Fonctionnalités principales |
 |---|---|
-| **Commerçant** | Publier une offre, gérer les quantités, suivre ventes et dons |
-| **Client** | Rechercher des offres, commander et payer, suivre sa commande |
-| **Association** | Déclarer ses besoins, demander un don, suivre la réception |
-| **Livreur** | Consulter et accepter des missions, confirmer la livraison |
-| **Tous** | S'authentifier, gagner points et badges, consulter son historique |
-| **Système (IA)** | Prédire les surplus, recommander des associations |
+| **Commerçant** | Publier et gérer ses offres et son stock, accepter des dons, consulter les prévisions de surplus |
+| **Client** | Consulter les offres, lire et commenter des articles, s'inscrire à des événements, chercher des recettes |
+| **Association** | Déclarer ses besoins, demander un don, confirmer la réception, organiser des événements |
+| **Administrateur** | Gérer les catégories et les recettes, relancer l'analyse |
+| **Tous les utilisateurs** | S'authentifier, rédiger des articles, gérer son garde-manger, sauvegarder des recettes en favori |
+| **Système (IA)** | Prédire les surplus, recommander des associations, alimenter l'historique |
 
 ---
 
 ## 🏗️ Architecture
 
-```mermaid
-flowchart LR
-    FE[Frontend React] --> GW[API Gateway<br/>Spring Cloud Gateway]
-    GW <--> KC[Keycloak<br/>Auth + rôles]
-    GW --> MS1[MS1 Offres et stocks]
-    GW --> MS2[MS2 Commandes et paiements]
-    GW --> MS3[MS3 Livraisons]
-    GW --> MS4[MS4 Dons et associations]
-    GW --> MS5[MS5 EcoRewards]
-    GW --> MS6[MS6 Food Intelligence]
-    EU[Eureka<br/>Registre des services] -.- GW
-    MS1 --- DB1[(MySQL)]
-    MS2 --- DB2[(MySQL)]
-    MS3 --- DB3[(H2)]
-    MS4 --- DB4[(MySQL)]
-    MS5 --- DB5[(H2)]
-    MS6 --- DB6[(MongoDB)]
-    MQ{{RabbitMQ<br/>événements asynchrones}}
-    MS2 -.-> MQ
-    MS3 -.-> MQ
-    MS4 -.-> MQ
-    MQ -.-> MS5
-    MQ -.-> MS6
-```
 
-📄 Le diagramme complet se trouve dans [`Documentation/Diagrams/`](Documentation/Diagrams/).
+
+📄 Les diagrammes complets (architecture, classes, cas d'utilisation) se trouvent dans [`Documentation/Diagrams/`](Documentation/Diagrams/).
 
 ### Microservices
 
-| # | Service | Responsabilité | Base | Interactions |
-|---|---|---|---|---|
-| MS1 | **Offres et stocks** | Publier des offres payantes ou gratuites, gérer les quantités | MySQL | Appelé par MS2 et MS4 |
-| MS2 | **Commandes et paiements** | Parcours d'achat, statuts de commande, paiement et remboursement | MySQL | Appelé par MS1 et MS3 |
-| MS3 | **Livraisons** | Créer, affecter et suivre les livraisons | H2 | Appelé par MS2 et MS4 |
-| MS4 | **Dons et associations** | Besoins des associations, attribution et suivi des dons | MySQL | Appelé par MS1 et MS3 |
-| MS5 | **EcoRewards** | Points, badges, niveaux, défis, classement | H2 | Reçoit des événements (RabbitMQ) |
-| MS6 | **Food Intelligence** *(commun)* | Analyse des historiques, prédiction des surplus, recommandation d'associations | MongoDB | Reçoit les historiques, conseille MS1 et MS4 |
+| # | Service | Responsabilité | Entités principales | Base | Responsable |
+|---|---|---|---|---|---|
+| MS1 | **Offres et stocks** | Publier et gérer les surplus (offres payantes ou gratuites) et leurs quantités | Offre, Stock, Catégorie | MySQL | Eya Andolsi |
+| MS2 | **Articles et blog** | Espace collaboratif pour créer, publier et consulter des articles sur l'anti-gaspillage, la nutrition, la solidarité et l'écologie | Article, Commentaire, Like, Catégorie | H2 | Mayssa Ferjani |
+| MS3 | **Événements solidaires** | Publier et gérer des événements (collectes, ateliers anti-gaspillage, distributions de repas) et leurs inscriptions | Événement, Inscription | H2 | Rayen Gmati |
+| MS4 | **Dons et associations** | Gérer les besoins des associations et les demandes de dons | Association, Don, Besoin | MySQL | Abrar Abidi |
+| MS5 | **Recettes anti-gaspillage** | Proposer des recettes pour cuisiner les restes et les produits proches de leur date limite, gérer le garde-manger | Recette, Ingrédient, IngrédientRecette, Favori, ProduitGardeManger | MySQL | Aya Chagra |
+| MS6 | **Food Intelligence** *(commun)* | Analyser les historiques, prédire les surplus, recommander des associations | EnregistrementHistorique, PrévisionSurplus, RecommandationAssociation | MongoDB | Toute l'équipe |
 
 ### Communication
 
-- **Synchrone** : REST avec OpenFeign, quand une réponse immédiate est nécessaire. Exemple : MS2 vérifie le stock auprès de MS1.
-- **Asynchrone** : événements RabbitMQ, une fois l'action terminée. Exemple : don livré, MS5 attribue des points.
+- **Synchrone** : REST avec OpenFeign, quand une réponse immédiate est nécessaire.
+  - MS4 vérifie l'offre concernée par un don auprès de MS1 (`offreId`).
+  - MS3 vérifie qu'une association est valide auprès de MS4 (`associationId`).
+- **Asynchrone** : événements RabbitMQ, une fois l'action terminée.
+  - MS1, MS3, MS4 et MS5 publient leurs événements (offre publiée, inscription confirmée, don accepté, recette sauvegardée).
+  - MS6 les consomme pour alimenter son historique, puis produit des prévisions et des recommandations.
 
 ### Sécurité
 
 - Authentification et autorisation via **Keycloak** (JWT).
 - Le JWT est vérifié à l'**API Gateway**, qui route ensuite les requêtes vers les microservices.
-- Rôles : `COMMERCANT`, `CLIENT`, `ASSOCIATION`, `LIVREUR`, `ADMIN`.
+- Rôles : `COMMERCANT`, `CLIENT`, `ASSOCIATION`, `ADMIN`.
 
 ---
 
@@ -97,19 +76,17 @@ flowchart LR
 
 ---
 
-
-
----
-
 ## 🔌 Contrats d'API (aperçu)
+
+> Les endpoints de MS2, MS3 et MS5 sont proposés et seront précisés lors du développement.
 
 | Service | Endpoints principaux |
 |---|---|
 | MS1 | `POST /offers` · `GET /offers?type=&category=` · `PUT /offers/{id}` · `PATCH /offers/{id}/stock` |
-| MS2 | `POST /orders` · `GET /orders/me` · `PATCH /orders/{id}/cancel` · `POST /payments` |
-| MS3 | `POST /deliveries` · `PATCH /deliveries/{id}/assign` · `PATCH /deliveries/{id}/status` · `GET /deliveries/me` |
+| MS2 | `POST /articles` · `GET /articles?category=` · `POST /articles/{id}/comments` · `POST /articles/{id}/likes` · `GET /categories` |
+| MS3 | `POST /events` · `GET /events?type=&date=` · `PATCH /events/{id}/cancel` · `POST /events/{id}/registrations` · `DELETE /events/{id}/registrations/me` |
 | MS4 | `POST /needs` · `GET /donations/available` · `POST /donations` · `PATCH /donations/{id}/accept` |
-| MS5 | `GET /points/me` · `GET /badges` · `GET /leaderboard` · `POST /challenges` |
+| MS5 | `GET /recipes?ingredient=&difficulty=` · `POST /recipes` · `POST /recipes/{id}/favorite` · `GET /pantry` · `POST /pantry` |
 | MS6 | `GET /predictions/surplus` · `GET /recommendations/associations` · `POST /analysis/refresh` |
 
 Les codes de réponse et les événements détaillés sont dans le dossier technique.
@@ -131,8 +108,8 @@ Les codes de réponse et les événements détaillés sont dans le dossier techn
 
 ```bash
 # 1. Cloner le dépôt
-git clone https://github.com/<organisation>/refood-4das-gX.git
-cd refood-4das-gX
+git clone https://github.com/<organisation>/refood-4dasi9-gX.git
+cd refood-4dasi9-gX
 
 # 2. Lancer l'infrastructure (Keycloak, RabbitMQ, bases de données)
 docker compose up -d
@@ -141,12 +118,10 @@ docker compose up -d
 cd Backend/<service> && mvn spring-boot:run
 
 # 4. Lancer le frontend
-cd Frontend && npm install && npm start
+cd Frontend && npm install && npm run dev
 ```
 
 ---
-
-
 
 ## 🌍 Objectifs de développement durable
 
