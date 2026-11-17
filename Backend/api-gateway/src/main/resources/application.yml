@@ -1,0 +1,54 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          # Routes statiques (lb:// = resolution via Eureka). Prefixe /api retire avant l'appel du MS.
+          routes:
+            - id: ms01-offers
+              uri: lb://ms01-offers
+              predicates: [ "Path=/api/offers/**" ]
+              filters: [ "StripPrefix=1" ]
+            - id: ms02-articles
+              uri: lb://ms02-articles
+              predicates: [ "Path=/api/articles/**" ]
+              filters: [ "StripPrefix=1" ]
+            - id: ms03-events
+              uri: lb://ms03-events
+              predicates: [ "Path=/api/events/**" ]
+              filters: [ "StripPrefix=1" ]
+            - id: ms04-donations
+              uri: lb://ms04-donations
+              predicates: [ "Path=/api/donations/**,/api/needs/**,/api/associations/**" ]
+              filters: [ "StripPrefix=1" ]
+            - id: ms05-recipes
+              uri: lb://ms05-recipes
+              predicates: [ "Path=/api/recipes/**,/api/pantry/**" ]
+              filters: [ "StripPrefix=1" ]
+            - id: ms06-intelligence
+              uri: lb://ms06-intelligence
+              predicates: [ "Path=/api/predictions/**,/api/recommendations/**,/api/analysis/**" ]
+              filters: [ "StripPrefix=1" ]
+          # CORS pour le front (Vite : 5173)
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: [ "http://localhost:5173" ]
+                allowedMethods: [ GET, POST, PUT, PATCH, DELETE, OPTIONS ]
+                allowedHeaders: "*"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
