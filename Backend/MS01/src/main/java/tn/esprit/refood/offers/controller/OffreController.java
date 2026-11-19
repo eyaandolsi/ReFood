@@ -12,6 +12,7 @@ import tn.esprit.refood.offers.dto.OffreRequestDTO;
 import tn.esprit.refood.offers.dto.OffreResponseDTO;
 import tn.esprit.refood.offers.entity.Offre;
 import tn.esprit.refood.offers.mapper.OffreMapper;
+import tn.esprit.refood.offers.service.CategorieService;
 import tn.esprit.refood.offers.service.OffreService;
 
 import java.util.List;
@@ -36,13 +37,15 @@ public class OffreController {
 
     private final OffreService offreService;
     private final OffreMapper offreMapper;
+    private final CategorieService categorieService;
 
     /**
      * Constructeur pour l'injection de dépendances.
      */
-    public OffreController(OffreService offreService, OffreMapper offreMapper) {
+    public OffreController(OffreService offreService, OffreMapper offreMapper, CategorieService categorieService) {
         this.offreService = offreService;
         this.offreMapper = offreMapper;
+        this.categorieService = categorieService;
     }
 
     /**
@@ -54,6 +57,9 @@ public class OffreController {
             @Valid @RequestBody OffreRequestDTO offreRequestDTO) {
 
         Offre offre = offreMapper.toEntity(offreRequestDTO);
+        if (offreRequestDTO.getCategorieId() != null) {
+            offre.setCategorie(categorieService.getCategorieById(offreRequestDTO.getCategorieId()));
+        }
         Offre createdOffre = offreService.createOffre(offre);
         OffreResponseDTO responseDTO = offreMapper.toResponseDTO(createdOffre);
 

@@ -3,9 +3,12 @@ package tn.esprit.refood.offers.config;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import tn.esprit.refood.offers.entity.StatutOffre;
+import tn.esprit.refood.offers.entity.TypeOffre;
 import tn.esprit.refood.offers.exception.BadRequestException;
 import tn.esprit.refood.offers.exception.InvalidOperationException;
 import tn.esprit.refood.offers.exception.ResourceNotFoundException;
@@ -77,6 +80,40 @@ public class GlobalExceptionHandler {
                 "Erreur de validation",
                 LocalDateTime.now(),
                 errors
+        );
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Gère les erreurs de désérialisation du corps JSON (format invalide, date illisible, etc.).
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Corps de requête invalide: " + ex.getMostSpecificCause().getMessage(),
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Gère les valeurs d'enum invalides (typeOffre, statutOffre) levées par valueOf() dans le mapper.
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
+        String message = ex.getMessage();
+        if (message != null && message.contains("TypeOffre")) {
+            message = "Valeur invalide pour typeOffre. Valeurs autorisées: "
+                    + java.util.Arrays.toString(TypeOffre.values());
+        } else if (message != null && message.contains("StatutOffre")) {
+            message = "Valeur invalide pour statutOffre. Valeurs autorisées: "
+                    + java.util.Arrays.toString(StatutOffre.values());
+        }
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                message,
+                LocalDateTime.now()
         );
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }

@@ -1,5 +1,6 @@
 package tn.esprit.refood.offers.dto;
 
+import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -18,13 +19,14 @@ public class OffreRequestDTO {
     @NotBlank(message = "La description est obligatoire")
     private String description;
 
+    @Future(message = "La date d'expiration doit être dans le futur")
     private Date dateExpiration;
 
     @NotNull(message = "La quantité est obligatoire")
     @PositiveOrZero(message = "La quantité ne peut pas être négative")
     private Integer quantite;
 
-    private String typeOffre; // OFFRE_GRATUITE ou OFFRE_PAYANTE
+    private String typeOffre; // DON_SOLIDAIRE, VENTE_REDUITE, OFFRE_GRATUITE ou OFFRE_PAYANTE
 
     private String statutOffre; // DISPONIBLE, RESERVEE, EXPIREE, ANNULEE
 
