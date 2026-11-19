@@ -2,13 +2,18 @@ package tn.esprit.refood.offers.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import tn.esprit.refood.offers.dto.PaiementRequestDTO;
+import tn.esprit.refood.offers.dto.PaiementResponseDTO;
 import tn.esprit.refood.offers.entity.Paiement;
+import tn.esprit.refood.offers.mapper.PaiementMapper;
 import tn.esprit.refood.offers.service.PaiementService;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Contrôleur REST pour la gestion des paiements.
@@ -26,74 +31,67 @@ import java.util.List;
 @Tag(name = "Paiements", description = "Gestion des paiements")
 public class PaiementController {
 
-    // TODO: Remplacer @Autowired par injection par constructeur
-    @Autowired
-    private PaiementService paiementService;
+    private final PaiementService paiementService;
+    private final PaiementMapper paiementMapper;
+
+    /**
+     * Constructeur pour l'injection de dépendances.
+     */
+    public PaiementController(PaiementService paiementService, PaiementMapper paiementMapper) {
+        this.paiementService = paiementService;
+        this.paiementMapper = paiementMapper;
+    }
 
     /**
      * Créer un nouveau paiement.
-     * 
-     * Le paiement doit être lié à une commande existante.
-     * Le statut initial est EN_ATTENTE par défaut.
      */
     @PostMapping
     @Operation(summary = "Créer un paiement")
-    public ResponseEntity<Paiement> createPaiement(@RequestBody Paiement paiement) {
+    public ResponseEntity<PaiementResponseDTO> createPaiement(@Valid @RequestBody PaiementRequestDTO paiementRequestDTO) {
+        Paiement paiement = paiementMapper.toEntity(paiementRequestDTO);
         Paiement createdPaiement = paiementService.createPaiement(paiement);
-        // TODO: Retourner 201 CREATED au lieu de 200 OK
-        return ResponseEntity.ok(createdPaiement);
+        PaiementResponseDTO responseDTO = paiementMapper.toResponseDTO(createdPaiement);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
     }
 
     /**
      * Récupérer un paiement par son ID.
-     * 
-     * Retourne 404 si le paiement n'existe pas.
      */
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer un paiement par ID")
-    public ResponseEntity<Paiement> getPaiementById(@PathVariable Long id) {
+    public ResponseEntity<PaiementResponseDTO> getPaiementById(@PathVariable Long id) {
         Paiement paiement = paiementService.getPaiementById(id);
-        if (paiement != null) {
-            return ResponseEntity.ok(paiement);
-        }
-        return ResponseEntity.notFound().build();
+        PaiementResponseDTO responseDTO = paiementMapper.toResponseDTO(paiement);
+        return ResponseEntity.ok(responseDTO);
     }
 
     /**
      * Récupérer tous les paiements.
-     * 
-     * Note: En production, ajouter des filtres (par commande, par statut, par date)
-     * et la pagination pour optimiser les performances.
      */
     @GetMapping
     @Operation(summary = "Récupérer tous les paiements")
-    public ResponseEntity<List<Paiement>> getAllPaiements() {
+    public ResponseEntity<List<PaiementResponseDTO>> getAllPaiements() {
         List<Paiement> paiements = paiementService.getAllPaiements();
-        return ResponseEntity.ok(paiements);
+        List<PaiementResponseDTO> responseDTOs = paiements.stream()
+                .map(paiementMapper::toResponseDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responseDTOs);
     }
 
     /**
      * Mettre à jour un paiement.
-     * 
-     * Permet de modifier le statut du paiement (ex: EN_ATTENTE -> VALIDE).
-     * Une fois validé, le paiement ne devrait plus être modifié.
      */
     @PutMapping("/{id}")
     @Operation(summary = "Mettre à jour un paiement")
-    public ResponseEntity<Paiement> updatePaiement(@PathVariable Long id, @RequestBody Paiement paiement) {
+    public ResponseEntity<PaiementResponseDTO> updatePaiement(@PathVariable Long id, @Valid @RequestBody PaiementRequestDTO paiementRequestDTO) {
+        Paiement paiement = paiementMapper.toEntity(paiementRequestDTO);
         Paiement updatedPaiement = paiementService.updatePaiement(id, paiement);
-        if (updatedPaiement != null) {
-            return ResponseEntity.ok(updatedPaiement);
-        }
-        return ResponseEntity.notFound().build();
+        PaiementResponseDTO responseDTO = paiementMapper.toResponseDTO(updatedPaiement);
+        return ResponseEntity.ok(responseDTO);
     }
 
     /**
      * Supprimer un paiement.
-     * 
-     * Attention: La suppression d'un paiement peut affecter la commande associée.
-     * En production, préférer une suppression logique ou bloquer la suppression
-     * si le paiement est validé.
      */
     @DeleteMapping("/{id}")
     @Operation(summary = "Supprimer un paiement")

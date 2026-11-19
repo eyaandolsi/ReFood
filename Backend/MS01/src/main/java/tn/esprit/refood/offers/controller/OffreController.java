@@ -3,14 +3,19 @@ package tn.esprit.refood.offers.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import tn.esprit.refood.offers.dto.OffreRequestDTO;
+import tn.esprit.refood.offers.dto.OffreResponseDTO;
 import tn.esprit.refood.offers.entity.Offre;
+import tn.esprit.refood.offers.mapper.OffreMapper;
 import tn.esprit.refood.offers.service.OffreService;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Contrôleur REST pour la gestion des offres.
@@ -29,108 +34,77 @@ import java.util.List;
 @Tag(name = "Offres", description = "Gestion des offres REFOOD")
 public class OffreController {
 
-    // Injection par constructeur (recommandée par Spring pour l'immutabilité et les tests)
-    // Le service est déclaré 'final' pour garantir qu'il ne peut pas être modifié après l'injection
     private final OffreService offreService;
+    private final OffreMapper offreMapper;
 
     /**
      * Constructeur pour l'injection de dépendances.
-     * 
-     * L'injection par constructeur est préférée à @Autowired sur les champs car:
-     * - Elle permet de rendre les champs final (immutabilité)
-     * - Elle facilite les tests unitaires (on peut facilement mocker les dépendances)
-     * - Elle garantit que toutes les dépendances sont présentes à la création de l'objet
      */
-    public OffreController(OffreService offreService) {
+    public OffreController(OffreService offreService, OffreMapper offreMapper) {
         this.offreService = offreService;
+        this.offreMapper = offreMapper;
     }
 
     /**
      * Créer une nouvelle offre.
-     * 
-     * @PostMapping : Mappe les requêtes HTTP POST sur cet endpoint.
-     * @Operation : Documentation Swagger décrivant l'opération.
-     * @RequestBody : Le corps de la requête HTTP est automatiquement désérialisé en objet Offre.
-     * 
-     * Retourne HTTP 201 (CREATED) pour indiquer que la ressource a été créée avec succès.
-     * C'est une bonne pratique RESTful de retourner 201 plutôt que 200 pour une création.
      */
     @PostMapping
     @Operation(summary = "Créer une offre")
-    public ResponseEntity<Offre> createOffre(
-            @RequestBody Offre offre) {
+    public ResponseEntity<OffreResponseDTO> createOffre(
+            @Valid @RequestBody OffreRequestDTO offreRequestDTO) {
 
-        // Délègue la logique métier au service layer (séparation des responsabilités)
+        Offre offre = offreMapper.toEntity(offreRequestDTO);
         Offre createdOffre = offreService.createOffre(offre);
+        OffreResponseDTO responseDTO = offreMapper.toResponseDTO(createdOffre);
 
-        // Retourne 201 CREATED avec l'offre créée dans le corps de la réponse
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(createdOffre);
+                .body(responseDTO);
     }
 
     /**
      * Récupérer une offre par son identifiant.
-     * 
-     * @GetMapping : Mappe les requêtes HTTP GET sur cet endpoint.
-     * @PathVariable : Extrait l'ID de l'URL (ex: /api/offres/123 -> id = 123).
-     * 
-     * Retourne 404 NOT FOUND si l'offre n'existe pas, ce qui est le comportement REST standard.
      */
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer une offre par ID")
-    public ResponseEntity<Offre> getOffreById(
+    public ResponseEntity<OffreResponseDTO> getOffreById(
             @PathVariable Long id) {
 
         Offre offre = offreService.getOffreById(id);
+        OffreResponseDTO responseDTO = offreMapper.toResponseDTO(offre);
 
-        // Gestion du cas où l'offre n'existe pas
-        if (offre == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        // Retourne 200 OK avec l'offre trouvée
-        return ResponseEntity.ok(offre);
+        return ResponseEntity.ok(responseDTO);
     }
 
     /**
      * Récupérer toutes les offres disponibles.
-     * 
-     * Note : Pour une application avec beaucoup de données, il faudrait ajouter
-     * de la pagination (ex: /api/offres?page=0&size=10) pour éviter les
-     * problèmes de performance.
      */
     @GetMapping
     @Operation(summary = "Récupérer toutes les offres")
-    public ResponseEntity<List<Offre>> getAllOffres() {
+    public ResponseEntity<List<OffreResponseDTO>> getAllOffres() {
 
         List<Offre> offres = offreService.getAllOffres();
+        List<OffreResponseDTO> responseDTOs = offres.stream()
+                .map(offreMapper::toResponseDTO)
+                .collect(Collectors.toList());
 
-        return ResponseEntity.ok(offres);
+        return ResponseEntity.ok(responseDTOs);
     }
 
     /**
      * Mettre à jour une offre existante.
-     * 
-     * @PutMapping : Mappe les requêtes HTTP PUT pour les mises à jour complètes.
-     *              Pour une mise à jour partielle (PATCH), on utiliserait @PatchMapping.
-     * 
-     * L'ID dans l'URL doit correspondre à l'offre à mettre à jour.
-     * Le corps de la requête contient les nouvelles données.
      */
     @PutMapping("/{id}")
     @Operation(summary = "Modifier une offre")
-    public ResponseEntity<Offre> updateOffre(
+    public ResponseEntity<OffreResponseDTO> updateOffre(
             @PathVariable Long id,
-            @RequestBody Offre offre) {
+            @Valid @RequestBody OffreRequestDTO offreRequestDTO) {
 
+        Offre offre = offreMapper.toEntity(offreRequestDTO);
         Offre updatedOffre = offreService.updateOffre(id, offre);
+        OffreResponseDTO responseDTO = offreMapper.toResponseDTO(updatedOffre);
 
-        if (updatedOffre == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        return ResponseEntity.ok(updatedOffre);
+        return ResponseEntity.ok(responseDTO);
     }
 
     /**

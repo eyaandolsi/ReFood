@@ -2,13 +2,18 @@ package tn.esprit.refood.offers.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import tn.esprit.refood.offers.dto.CommandeRequestDTO;
+import tn.esprit.refood.offers.dto.CommandeResponseDTO;
 import tn.esprit.refood.offers.entity.Commande;
+import tn.esprit.refood.offers.mapper.CommandeMapper;
 import tn.esprit.refood.offers.service.CommandeService;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Contrôleur REST pour la gestion des commandes.
@@ -25,73 +30,67 @@ import java.util.List;
 @Tag(name = "Commandes", description = "Gestion des commandes")
 public class CommandeController {
 
-    // TODO: Remplacer @Autowired par injection par constructeur (comme OffreController)
-    // pour une meilleure testabilité et immutabilité
-    @Autowired
-    private CommandeService commandeService;
+    private final CommandeService commandeService;
+    private final CommandeMapper commandeMapper;
+
+    /**
+     * Constructeur pour l'injection de dépendances.
+     */
+    public CommandeController(CommandeService commandeService, CommandeMapper commandeMapper) {
+        this.commandeService = commandeService;
+        this.commandeMapper = commandeMapper;
+    }
 
     /**
      * Créer une nouvelle commande.
-     * 
-     * La commande doit être liée à une offre existante via l'ID de l'offre.
-     * Le statut initial de la commande est EN_ATTENTE par défaut.
      */
     @PostMapping
     @Operation(summary = "Créer une commande")
-    public ResponseEntity<Commande> createCommande(@RequestBody Commande commande) {
+    public ResponseEntity<CommandeResponseDTO> createCommande(@Valid @RequestBody CommandeRequestDTO commandeRequestDTO) {
+        Commande commande = commandeMapper.toEntity(commandeRequestDTO);
         Commande createdCommande = commandeService.createCommande(commande);
-        // TODO: Retourner 201 CREATED au lieu de 200 OK pour respecter REST
-        return ResponseEntity.ok(createdCommande);
+        CommandeResponseDTO responseDTO = commandeMapper.toResponseDTO(createdCommande);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
     }
 
     /**
      * Récupérer une commande par son ID.
-     * 
-     * Retourne 404 si la commande n'existe pas.
      */
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer une commande par ID")
-    public ResponseEntity<Commande> getCommandeById(@PathVariable Long id) {
+    public ResponseEntity<CommandeResponseDTO> getCommandeById(@PathVariable Long id) {
         Commande commande = commandeService.getCommandeById(id);
-        if (commande != null) {
-            return ResponseEntity.ok(commande);
-        }
-        return ResponseEntity.notFound().build();
+        CommandeResponseDTO responseDTO = commandeMapper.toResponseDTO(commande);
+        return ResponseEntity.ok(responseDTO);
     }
 
     /**
      * Récupérer toutes les commandes.
-     * 
-     * Note: En production, ajouter la pagination et des filtres
-     * (par statut, par date, par offre) pour optimiser les performances.
      */
     @GetMapping
     @Operation(summary = "Récupérer toutes les commandes")
-    public ResponseEntity<List<Commande>> getAllCommandes() {
+    public ResponseEntity<List<CommandeResponseDTO>> getAllCommandes() {
         List<Commande> commandes = commandeService.getAllCommandes();
-        return ResponseEntity.ok(commandes);
+        List<CommandeResponseDTO> responseDTOs = commandes.stream()
+                .map(commandeMapper::toResponseDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responseDTOs);
     }
 
     /**
      * Mettre à jour une commande.
-     * 
-     * Permet de modifier le statut de la commande (ex: EN_ATTENTE -> CONFIRMEE).
      */
     @PutMapping("/{id}")
     @Operation(summary = "Mettre à jour une commande")
-    public ResponseEntity<Commande> updateCommande(@PathVariable Long id, @RequestBody Commande commande) {
+    public ResponseEntity<CommandeResponseDTO> updateCommande(@PathVariable Long id, @Valid @RequestBody CommandeRequestDTO commandeRequestDTO) {
+        Commande commande = commandeMapper.toEntity(commandeRequestDTO);
         Commande updatedCommande = commandeService.updateCommande(id, commande);
-        if (updatedCommande != null) {
-            return ResponseEntity.ok(updatedCommande);
-        }
-        return ResponseEntity.notFound().build();
+        CommandeResponseDTO responseDTO = commandeMapper.toResponseDTO(updatedCommande);
+        return ResponseEntity.ok(responseDTO);
     }
 
     /**
      * Supprimer une commande.
-     * 
-     * Attention: La suppression supprimera aussi les paiements associés
-     * (cascade=ALL dans l'entité). En production, préférer une suppression logique.
      */
     @DeleteMapping("/{id}")
     @Operation(summary = "Supprimer une commande")

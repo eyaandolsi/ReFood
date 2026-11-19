@@ -6,6 +6,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import tn.esprit.refood.offers.entity.Offre;
 import tn.esprit.refood.offers.entity.StatutOffre;
+import tn.esprit.refood.offers.exception.BadRequestException;
+import tn.esprit.refood.offers.exception.InvalidOperationException;
+import tn.esprit.refood.offers.exception.ResourceNotFoundException;
 import tn.esprit.refood.offers.repository.OffreRepository;
 import tn.esprit.refood.offers.service.OffreService;
 
@@ -57,12 +60,12 @@ public class OffreServiceImpl implements OffreService {
 
         // Validation: l'offre ne peut pas être null
         if (offre == null) {
-            throw new IllegalArgumentException("L'offre ne peut pas être null");
+            throw new BadRequestException("L'offre ne peut pas être null");
         }
 
         // Validation: la quantité doit être positive
-        if (offre.getQuantite() < 0) {
-            throw new IllegalArgumentException(
+        if (offre.getQuantite() == null || offre.getQuantite() < 0) {
+            throw new BadRequestException(
                     "La quantité ne peut pas être négative"
             );
         }
@@ -87,9 +90,7 @@ public class OffreServiceImpl implements OffreService {
 
         return offreRepository.findById(id)
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Offre introuvable avec ID : " + id
-                        )
+                        new ResourceNotFoundException("Offre", id)
                 );
     }
 
@@ -130,7 +131,7 @@ public class OffreServiceImpl implements OffreService {
 
         // Validation des données
         if (nouvelleOffre == null) {
-            throw new IllegalArgumentException(
+            throw new BadRequestException(
                     "Les données de l'offre sont obligatoires"
             );
         }
@@ -163,7 +164,7 @@ public class OffreServiceImpl implements OffreService {
 
         // Règle métier: on ne peut pas republier une offre annulée
         if (offre.getStatutOffre() == StatutOffre.ANNULEE) {
-            throw new IllegalStateException(
+            throw new InvalidOperationException(
                     "Impossible de publier une offre annulée"
             );
         }
@@ -193,21 +194,21 @@ public class OffreServiceImpl implements OffreService {
 
         // Validation: la quantité doit être positive
         if (quantite == null || quantite <= 0) {
-            throw new IllegalArgumentException(
+            throw new BadRequestException(
                     "La quantité doit être supérieure à zéro"
             );
         }
 
         // Règle métier: on ne peut réserver que des offres disponibles
         if (offre.getStatutOffre() != StatutOffre.DISPONIBLE) {
-            throw new IllegalStateException(
+            throw new InvalidOperationException(
                     "Cette offre n'est pas disponible"
             );
         }
 
         // Règle métier: vérifier le stock disponible
         if (offre.getQuantite() < quantite) {
-            throw new IllegalArgumentException(
+            throw new BadRequestException(
                     "Quantité disponible insuffisante"
             );
         }
@@ -237,7 +238,7 @@ public class OffreServiceImpl implements OffreService {
 
         // Validation: la quantité doit être positive
         if (quantite == null || quantite <= 0) {
-            throw new IllegalArgumentException(
+            throw new BadRequestException(
                     "La quantité doit être supérieure à zéro"
             );
         }

@@ -2,13 +2,18 @@ package tn.esprit.refood.offers.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import tn.esprit.refood.offers.dto.CategorieRequestDTO;
+import tn.esprit.refood.offers.dto.CategorieResponseDTO;
 import tn.esprit.refood.offers.entity.Categorie;
+import tn.esprit.refood.offers.mapper.CategorieMapper;
 import tn.esprit.refood.offers.service.CategorieService;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Contrôleur REST pour la gestion des catégories.
@@ -26,74 +31,67 @@ import java.util.List;
 @Tag(name = "Categories", description = "Gestion des catégories")
 public class CategorieController {
 
-    // TODO: Remplacer @Autowired par injection par constructeur
-    @Autowired
-    private CategorieService categorieService;
+    private final CategorieService categorieService;
+    private final CategorieMapper categorieMapper;
+
+    /**
+     * Constructeur pour l'injection de dépendances.
+     */
+    public CategorieController(CategorieService categorieService, CategorieMapper categorieMapper) {
+        this.categorieService = categorieService;
+        this.categorieMapper = categorieMapper;
+    }
 
     /**
      * Créer une nouvelle catégorie.
-     * 
-     * Le nom de la catégorie doit être unique.
-     * Une catégorie peut être créée sans offres initialement.
      */
     @PostMapping
     @Operation(summary = "Créer une catégorie")
-    public ResponseEntity<Categorie> createCategorie(@RequestBody Categorie categorie) {
+    public ResponseEntity<CategorieResponseDTO> createCategorie(@Valid @RequestBody CategorieRequestDTO categorieRequestDTO) {
+        Categorie categorie = categorieMapper.toEntity(categorieRequestDTO);
         Categorie createdCategorie = categorieService.createCategorie(categorie);
-        // TODO: Retourner 201 CREATED au lieu de 200 OK
-        return ResponseEntity.ok(createdCategorie);
+        CategorieResponseDTO responseDTO = categorieMapper.toResponseDTO(createdCategorie);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
     }
 
     /**
      * Récupérer une catégorie par son ID.
-     * 
-     * Retourne 404 si la catégorie n'existe pas.
      */
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer une catégorie par ID")
-    public ResponseEntity<Categorie> getCategorieById(@PathVariable Long id) {
+    public ResponseEntity<CategorieResponseDTO> getCategorieById(@PathVariable Long id) {
         Categorie categorie = categorieService.getCategorieById(id);
-        if (categorie != null) {
-            return ResponseEntity.ok(categorie);
-        }
-        return ResponseEntity.notFound().build();
+        CategorieResponseDTO responseDTO = categorieMapper.toResponseDTO(categorie);
+        return ResponseEntity.ok(responseDTO);
     }
 
     /**
      * Récupérer toutes les catégories.
-     * 
-     * Note: Les offres associées ne sont pas chargées par défaut (lazy loading)
-     * pour éviter les problèmes de performance N+1.
      */
     @GetMapping
     @Operation(summary = "Récupérer toutes les catégories")
-    public ResponseEntity<List<Categorie>> getAllCategories() {
+    public ResponseEntity<List<CategorieResponseDTO>> getAllCategories() {
         List<Categorie> categories = categorieService.getAllCategories();
-        return ResponseEntity.ok(categories);
+        List<CategorieResponseDTO> responseDTOs = categories.stream()
+                .map(categorieMapper::toResponseDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responseDTOs);
     }
 
     /**
      * Mettre à jour une catégorie.
-     * 
-     * Attention: Le nom de la catégorie reste unique.
-     * Si on modifie le nom, il faut vérifier qu'il n'existe pas déjà.
      */
     @PutMapping("/{id}")
     @Operation(summary = "Mettre à jour une catégorie")
-    public ResponseEntity<Categorie> updateCategorie(@PathVariable Long id, @RequestBody Categorie categorie) {
+    public ResponseEntity<CategorieResponseDTO> updateCategorie(@PathVariable Long id, @Valid @RequestBody CategorieRequestDTO categorieRequestDTO) {
+        Categorie categorie = categorieMapper.toEntity(categorieRequestDTO);
         Categorie updatedCategorie = categorieService.updateCategorie(id, categorie);
-        if (updatedCategorie != null) {
-            return ResponseEntity.ok(updatedCategorie);
-        }
-        return ResponseEntity.notFound().build();
+        CategorieResponseDTO responseDTO = categorieMapper.toResponseDTO(updatedCategorie);
+        return ResponseEntity.ok(responseDTO);
     }
 
     /**
      * Supprimer une catégorie.
-     * 
-     * Attention: La suppression supprimera aussi toutes les offres associées
-     * (cascade=ALL dans l'entité). En production, vérifier d'abord
-     * qu'il n'y a pas d'offres liées ou utiliser une suppression logique.
      */
     @DeleteMapping("/{id}")
     @Operation(summary = "Supprimer une catégorie")
