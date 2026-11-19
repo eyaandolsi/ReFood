@@ -24,7 +24,7 @@ public class OffreRequestDTO {
     @PositiveOrZero(message = "La quantité ne peut pas être négative")
     private Integer quantite;
 
-    private String typeOffre; // ALIMENTAIRE ou NON_ALIMENTAIRE
+    private String typeOffre; // OFFRE_GRATUITE ou OFFRE_PAYANTE
 
     private String statutOffre; // DISPONIBLE, RESERVEE, EXPIREE, ANNULEE
 
